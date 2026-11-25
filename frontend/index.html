@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Toy Lab</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-led" id="brandLed"></span>
+      <h1>AI Toy Lab</h1>
+      <span class="tag">V1 prototype console</span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-view="console">Console</button>
+      <button class="tab" data-view="devices">Devices</button>
+      <button class="tab" data-view="settings">Settings</button>
+    </nav>
+    <div class="conn" id="backendConn"><span class="dot"></span><span>backend</span></div>
+  </header>
+
+  <!-- ===================== CONSOLE ===================== -->
+  <main id="view-console" class="view active">
+    <section class="grid-console">
+      <aside class="panel device-panel">
+        <h2>Device</h2>
+        <label class="field">
+          <span>Active toy</span>
+          <select id="deviceSelect"></select>
+        </label>
+        <div class="kv" id="deviceSummary"></div>
+        <label class="field">
+          <span>Personality</span>
+          <select id="personalitySelect"></select>
+        </label>
+        <div class="state-strip" id="stateStrip"></div>
+      </aside>
+
+      <section class="panel talk-panel">
+        <div class="talk-head">
+          <h2>Conversation</h2>
+          <div class="mode">
+            <label><input type="radio" name="mode" value="ptt" checked /> Push-to-talk</label>
+            <label><input type="radio" name="mode" value="handsfree" /> Hands-free (VAD)</label>
+          </div>
+        </div>
+
+        <div class="history" id="history" aria-live="polite"></div>
+
+        <div class="controls">
+          <div class="meter"><div class="meter-fill" id="meter"></div></div>
+          <button id="pttBtn" class="ptt" disabled>
+            <span class="ptt-label">Enable microphone</span>
+            <span class="ptt-sub">click once to allow mic &amp; audio</span>
+          </button>
+          <button id="greetBtn" class="secondary" type="button" title="Plays the character's pre-recorded greeting">👋 Say hello</button>
+          <div class="last-rec" id="lastRecWrap" hidden>
+            <span>What the mic heard:</span> <audio id="lastRec" controls preload="auto"></audio>
+          </div>
+          <div class="pipeline" id="pipeline">
+            <span data-stage="listening">Listening</span>
+            <span data-stage="stt">Transcribing</span>
+            <span data-stage="llm">Thinking</span>
+            <span data-stage="tts">Voicing</span>
+            <span data-stage="speaking">Speaking</span>
+          </div>
+          <form id="textForm" class="textform">
+            <input id="textInput" placeholder="…or type to the toy (debug)" maxlength="500" autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
+          <p class="hint">Hold the button or <kbd>Space</kbd> to talk. A physical button on the ESP32 works too.</p>
+        </div>
+      </section>
+
+      <aside class="panel log-panel">
+        <h2>Event log</h2>
+        <ol id="eventLog" class="eventlog"></ol>
+      </aside>
+    </section>
+  </main>
+
+  <!-- ===================== DEVICES ===================== -->
+  <main id="view-devices" class="view">
+    <section class="panel">
+      <div class="row-head">
+        <h2>Devices</h2>
+        <form id="newDeviceForm" class="inline-form">
+          <input name="device_id" placeholder="new-virtual-id" required pattern="[A-Za-z0-9_\-:.]{3,64}" />
+          <input name="name" placeholder="Display name" />
+          <button type="submit">Add virtual device</button>
+        </form>
+      </div>
+      <div class="table-wrap">
+        <table class="devtable">
+          <thead><tr>
+            <th>Status</th><th>Device ID</th><th>Name</th><th>Firmware</th><th>Wi-Fi</th>
+            <th>Last heartbeat</th><th>Personality</th><th>Today</th><th></th>
+          </tr></thead>
+          <tbody id="deviceRows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel" id="deviceDetail" hidden></section>
+  </main>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <main id="view-settings" class="view">
+    <section class="grid-settings">
+      <div class="panel">
+        <h2>AI providers</h2>
+        <p class="muted">API keys are read only from environment variables (<code>.env</code>) and are never shown here. Changes below apply until the backend restarts.</p>
+        <form id="providerForm" class="form-grid"></form>
+        <div class="btnrow">
+          <button id="saveProviders">Apply</button>
+          <button id="testProviders" class="secondary">Test providers</button>
+        </div>
+        <pre id="providerTest" class="mono small"></pre>
+      </div>
+
+      <div class="panel">
+        <h2>Audio</h2>
+        <form id="audioForm" class="form-grid">
+          <label class="field"><span>Max recording (s)</span><input type="number" name="max_record_seconds" min="2" max="60" /></label>
+          <label class="field"><span>VAD threshold (RMS)</span><input type="number" name="vad_threshold" step="0.005" min="0.002" max="0.3" /></label>
+          <label class="field"><span>VAD end-of-speech silence (ms)</span><input type="number" name="vad_silence" step="100" min="300" max="3000" /></label>
+          <label class="field check"><input type="checkbox" name="save_raw_audio" /><span>Store raw audio on server (off by default for child privacy)</span></label>
+        </form>
+        <div class="btnrow"><button id="saveAudio">Save audio settings</button></div>
+      </div>
+
+      <div class="panel span2">
+        <div class="row-head">
+          <h2>Personalities</h2>
+          <div class="btnrow">
+            <select id="personalityEditSelect"></select>
+            <button id="newPersonality" class="secondary">New</button>
+            <button id="reloadPersonalities" class="secondary">Reload YAML</button>
+          </div>
+        </div>
+        <form id="personalityForm" class="form-grid"></form>
+        <div class="btnrow"><button id="savePersonality">Save personality</button></div>
+        <details class="safety">
+          <summary>Safety rules (always prepended, not editable here)</summary>
+          <pre id="safetyPreamble" class="mono small"></pre>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

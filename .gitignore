@@ -1,0 +1,12 @@
+.venv/
+.env
+data/
+__pycache__/
+*.pyc
+firmware/esp32/.pio/
+firmware/esp32/include/secrets.h
+.voiceclone-venv/
+.pio-venv/
+.pytest_cache/
+.DS_Store
+*.tmp

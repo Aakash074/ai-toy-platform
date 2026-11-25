@@ -1,0 +1,16 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pyyaml>=6
+python-dotenv>=1.0
+httpx>=0.27
+numpy>=1.26
+python-multipart>=0.0.9
+faster-whisper>=1.0      # local STT (optional if STT_PROVIDER != faster_whisper)
+anthropic>=2.0           # only needed for LLM_PROVIDER=anthropic
+websockets>=12           # device simulator
+pytest>=8
+# natural neural voices (Hindi/Telugu cartoon voices); free, online, no key
+edge-tts>=7.0
+# Whisper on the Apple Silicon GPU (STT_PROVIDER=mlx_whisper)
+mlx-whisper>=0.4; sys_platform == "darwin" and platform_machine == "arm64"
